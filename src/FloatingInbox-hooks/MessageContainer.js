@@ -10,6 +10,7 @@ import {
   useMessages,
   useSendMessage,
   useStreamMessages,
+  toCachedMessage,
   useClient,
 } from "@xmtp/react-sdk";
 import MessageItem from "./MessageItem";
@@ -26,18 +27,14 @@ export const MessageContainer = ({
   const [streamedMessages, setStreamedMessages] = useState([]);
 
   const combinedMessages = useMemo(() => {
-    const messageMap = new Map();
-
-    messages.forEach((message) => {
-      messageMap.set(message.id, message);
-    });
-
-    streamedMessages.forEach((message) => {
-      messageMap.set(message.id, message);
-    });
-
-    // Convert the map back into an array of messages.
-    return Array.from(messageMap.values());
+    return [
+      ...new Map(
+        [...messages, ...streamedMessages].map((message) => [
+          message.id,
+          message,
+        ])
+      ).values(),
+    ];
   }, [messages, streamedMessages]);
 
   const styles = {
@@ -66,7 +63,9 @@ export const MessageContainer = ({
   const onMessage = useCallback(
     (message) => {
       console.log("onMessage", message.content);
-      setStreamedMessages((prev) => [...prev, message]);
+      const cached = toCachedMessage(message);
+      console.log("cached", cached);
+      setStreamedMessages((prev) => [...prev, cached]);
     },
     [streamedMessages]
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import { useClient } from "@xmtp/react-sdk";
+import { useClient, ContentTypeId } from "@xmtp/react-sdk";
 
 const MessageItem = ({ message, senderAddress, isPWA = false }) => {
   const { client } = useClient();
@@ -57,25 +57,22 @@ const MessageItem = ({ message, senderAddress, isPWA = false }) => {
     );
   };
   const renderMessage = (message) => {
-    console.log(message);
-    const date = message.sentAt ? message.sentAt : message.sent;
-    try {
-      if (message?.content.length > 0) {
-        return (
-          <div style={styles.messageContent}>
-            <div style={styles.renderedMessage}>{message?.content}</div>
-            {renderFooter(date)}
-          </div>
-        );
-      }
-    } catch {
-      return message?.fallbackContent ? (
-        <div style={styles.messageContent}>
-          <div style={styles.renderedMessage}>{message?.fallbackContent}</div>
-          {renderFooter(date)}
-        </div>
-      ) : null;
+    const contentType = ContentTypeId.fromString(message.contentType);
+    const codec = client.codecFor(contentType);
+    console.log("codec", codec);
+    let content = message.content;
+    if (!codec) {
+      /*Not supported content type*/
+      if (message?.contentFallback !== undefined)
+        content = message?.contentFallback;
+      else return;
     }
+    return (
+      <div style={styles.messageContent}>
+        <div style={styles.renderedMessage}>{content}</div>
+        {renderFooter(message.sentAt)}
+      </div>
+    );
   };
 
   const isSender = senderAddress === client?.address;
