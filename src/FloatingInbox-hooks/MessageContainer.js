@@ -1,16 +1,9 @@
-import React, {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { useRef, useEffect } from "react";
 import { MessageInput } from "./MessageInput";
 import {
   useMessages,
   useSendMessage,
   useStreamMessages,
-  toCachedMessage,
   useClient,
 } from "@xmtp/react-sdk";
 import MessageItem from "./MessageItem";
@@ -24,18 +17,6 @@ export const MessageContainer = ({
 
   const { client } = useClient();
   const { messages, isLoading } = useMessages(conversation);
-  const [streamedMessages, setStreamedMessages] = useState([]);
-
-  const combinedMessages = useMemo(() => {
-    return [
-      ...new Map(
-        [...messages, ...streamedMessages].map((message) => [
-          message.id,
-          message,
-        ])
-      ).values(),
-    ];
-  }, [messages, streamedMessages]);
 
   const styles = {
     messagesContainer: {
@@ -60,22 +41,8 @@ export const MessageContainer = ({
     },
   };
 
-  const onMessage = useCallback(
-    (message) => {
-      console.log("onMessage", message.content);
-      const cached = toCachedMessage(message);
-      console.log("cached", cached);
-      setStreamedMessages((prev) => [...prev, cached]);
-    },
-    [streamedMessages]
-  );
-
-  useStreamMessages(conversation, { onMessage });
+  useStreamMessages(conversation);
   const { sendMessage } = useSendMessage();
-
-  useEffect(() => {
-    setStreamedMessages([]);
-  }, [conversation]);
 
   const handleSendMessage = async (newMessage) => {
     if (!newMessage.trim()) {
@@ -90,7 +57,7 @@ export const MessageContainer = ({
   useEffect(() => {
     if (!isContained)
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [streamedMessages]);
+  }, [messages]);
 
   return (
     <div style={styles.messagesContainer}>
@@ -99,7 +66,7 @@ export const MessageContainer = ({
       ) : (
         <>
           <ul style={styles.messagesList}>
-            {combinedMessages.slice().map((message) => {
+            {messages.slice().map((message) => {
               return (
                 <MessageItem
                   isPWA={isPWA}
